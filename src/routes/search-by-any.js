@@ -4,16 +4,21 @@ module.exports = (App)=>{
   const method = 'post';
   const path = '/search-by-any/';
 
+  const MIN_CHAR_LIMIT = 2;
+
   App.express[ method ]( path, async(req,res)=>{
 
     try{
 
-      const searchBy = (req.body['searchBy'] || '').trim();
+      const data = req.body;
 
-      if( searchBy.length < 3 )
-        return res.json({success: false, message: 'search-by: must be >= 3 characters', data: []});
+      const strict = App.getBooleanFromValue(data.strict);
+      const searchBy = (data.searchBy || '').trim();
 
-      const searchByRes = await App.DB.findAllByAnyValue(searchBy);
+      if( searchBy.length < MIN_CHAR_LIMIT )
+        return res.json({success: false, message: `search-by: must be >= ${MIN_CHAR_LIMIT} characters`, data: []});
+
+      const searchByRes = await App.DB.findAllByAnyValue( searchBy, strict );
       // console.json(searchByRes.data);
 
       res.json( searchByRes );

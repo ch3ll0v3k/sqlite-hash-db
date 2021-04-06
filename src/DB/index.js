@@ -14,7 +14,11 @@ module.exports = DB = class DB{
     this._initAllDbs();
   }
 
-  async findAllByAnyValue( value ){
+  async findAllByAnyValue( value, strict=false ){
+
+    console.json({
+      findAllByAnyValue: { value, strict }
+    });
 
     return new Promise(async(resolve)=>{
 
@@ -24,7 +28,9 @@ module.exports = DB = class DB{
       // find potential DB
       const dbs = Object.keys(this.dbs)
         .filter((dbName)=>{
-          return dbName.charAt(0) === hash || dbName.charAt(1) === hash;
+          return strict
+            ? dbName.charAt(0) === hash || dbName.charAt(1) === hash
+            : true; // <= search in all dbs
         });
 
       // const findByAny = this._getSqlPreFab('find-by-any.sql');

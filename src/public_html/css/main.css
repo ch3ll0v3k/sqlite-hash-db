@@ -14,6 +14,23 @@ th, th {
   padding: 5px;
 }
 
+.even-table-tr{
+  background: #f2f2f2 !important;
+}
+
+.odd-table-tr{
+  background: #fffff !important;
+
+}
+
+.main-table-tr{
+}
+
+.main-table-tr:hover{
+  background: #7e5 !important; color: #000 !important;
+}
+
+
 #wrapper{
   width: 100%; max-width: 1050px; margin: 5px auto; padding: 10px;
   background: #fff; min-height: 90%;
@@ -22,6 +39,17 @@ th, th {
 #header{
   padding-bottom: 10px; margin-bottom: 10px; border-bottom: dashed 1px #333;
 }
+
+#header-title{
+  width: 100%; padding: 10px 5px; font-size: 18px;
+}
+
+#header-footer{
+  margin-top: 10px; padding: 10px auto;
+  /*border-top: dashed 1px #333; */
+}
+
+.header-coll{}
 
 #body{}
 #main-input{

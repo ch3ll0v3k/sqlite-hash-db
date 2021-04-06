@@ -14,6 +14,7 @@
       const mainTbody = document.querySelector('#main-tbody');
       const mainInput = document.querySelector('#main-input');
       const mainButton = document.querySelector('#main-button');
+      const mainCheckbox = document.querySelector('#main-checkbox');
 
       mainInput.addEventListener('keyup',(event)=>{
         if( (+event.keyCode) === 13 )
@@ -24,12 +25,23 @@
         search();
       });
 
+
+      mainCheckbox.addEventListener('change',(event)=>{
+        strict = !strict;
+      });
+
+      let strict = false;
+
       const search = async()=>{
         const searchBy = mainInput.value.trim();
 
         showLoader();
 
-        const searchRes = await API.post('/search-by-any/', { searchBy })
+        const searchRes = await API.post('/search-by-any/', {
+          searchBy, 
+          strict
+        });
+
         if( !searchRes.success ){
           hideLoader();
           return mainTbody.innerHTML = `
@@ -51,7 +63,9 @@
 
         let html = '';
 
-        for( const row of searchRes.data ){
+        for( const rowIndex in searchRes.data ){
+
+          const row = searchRes.data[ rowIndex ];
 
           // {
           //   "id": 1,
@@ -66,7 +80,7 @@
           // },
 
           html += `
-            <tr>
+            <tr class="main-table-tr ${ rowIndex%2===0?'even-table-tr':'odd-table-tr' }">
               <td>${ row.id }</td>
               <td>${ row.name_parts }</td>
               <td>${ row.art_brands }</td>
@@ -101,6 +115,9 @@
   <div id="wrapper"> 
 
     <div id="header">
+
+      <div id="header-title">Поиск:</div>
+
       <input
         type="text"
         value="2291501202"
@@ -109,6 +126,19 @@
       />
 
       <button id="main-button" class="btn">Search</button>
+
+      <div id="header-footer">
+
+        <div class="header-coll">
+          <input
+            type="checkbox"
+            id="main-checkbox"
+          />
+          Искать точное совпадение ?
+        </div>
+
+      </div>
+
     </div>
       
     <div id="body">

@@ -77,4 +77,45 @@ module.exports = Application = class Application{
 
   }
 
+  getBoolFromValue(val){
+    if( this.isPosNumber((+val)) ) return !!(+val);
+    if( this.isString(val) )
+      return val.trim().toLowerCase() === 'true';          
+    return (!!val);
+  }
+
+  getBooleanFromValue(val){ return this.getBoolFromValue(val); }
+
+  getNumber(val, { floor=false }={}){
+    if( this.isUndefined(val) || this.isNull( +val ) || this.isNaN( +val ) )
+      return 0;
+    return floor ? Math.floor( +val ) : (+val);
+  }
+
+  getPosNumber(val, { floor=false, min=false, max=false }={}){
+    if( this.isUndefined(val) || this.isNull( +val ) || this.isNaN( +val ) )
+      return 0;
+    const v = Math.abs(floor ? Math.floor( +val ) : (+val));
+
+    return ( ! this.isBoolean(min) ) && v < min
+      ? min
+      : ( ! this.isBoolean(max) ) && v > max
+        ? max
+        : v;
+  }
+
+  isString( value ){ return typeof value === 'string'; }
+  isArray( value ){ return Array.isArray(value); }
+  isNumber( value ){ return typeof value === 'number' && !this.isNaN( value ) && (Math.abs(value) !== Infinity); }
+  isObject( value ){ return typeof value === 'object' && !this.isNull(value) && !this.isArray(value); }
+  isNull( value ){ return typeof value === 'object' && value === null; }
+  isNaN( value ){ return typeof value === 'number' && isNaN(value); }
+  isUndefined( value ){ return typeof value === 'undefined'; }
+  isBool( value ){ return typeof value === 'boolean'; }
+  isBoolean( value ){ return this.isBool(value); }
+
+  isPosNumber( value ){ return this.isNumber(value) && value > 0; }
+  isNegNumber( value ){ return this.isNumber(value) && value > 0; }
+  isFunction( value ){ return typeof value === 'function'; }
+
 }

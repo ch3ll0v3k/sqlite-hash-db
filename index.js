@@ -27,18 +27,21 @@ App.on('ready', async()=>{
   //   '1608064580': await App.DB.findAllByAnyValue('1608064580'),
   // });
 
-
+  return;
 
   // Insert data from CSV => 
+  const data = console.readFileSync('./slava-base.csv')
+    .split('\n')
+    .map((line)=> line.trim() )
+    .filter((line)=>line )
+    .map((line)=>line.split(';').map((coll)=>coll.trim()) );
 
-  // const data = console.readFileSync('./slava-base.csv')
-  //   .split('\n')
-  //   .map((line)=> line.trim() )
-  //   .filter((line)=>line )
-  //   .map((line)=>line.split(';').map((coll)=>coll.trim()) );
-
-  // const insertRes = await App.DB.insertDataRow( data[0] );
-  // console.json({ insertRes });
+  for( const row of data ){
+    const res = await App.DB.insertDataRow( row );
+    if( !res.success ){
+      console.json({ error: { res, row } });
+    }
+  }
 
   // {
   //   "insertRes": {
@@ -54,13 +57,6 @@ App.on('ready', async()=>{
   //       "code_parts": "4649378",
   //       "code_parts_advanced": "4649378"
   //     }
-  //   }
-  // }
-
-  // for( const row of data ){
-  //   const res = await App.DB.insertDataRow( row );
-  //   if( !res.success ){
-  //     console.json({ error: { res, row } });
   //   }
   // }
 
