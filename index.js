@@ -61,35 +61,3 @@ App.on('ready', async()=>{
   // }
 
 });
-
-
-return;
-
-// new sqlite3.Database(filename, [mode], [callback])
-const db = new sqlite3.Database(':memory:');
-
-db.serialize(function() {
-  db.run("CREATE TABLE lorem (info TEXT)");
-
-  var stmt = db.prepare("INSERT INTO lorem VALUES (?)");
-  for (var i = 0; i < 10; i++) {
-      stmt.run("Ipsum " + i);
-  }
-  stmt.finalize();
-
-  db.each("SELECT rowid AS id, info FROM lorem", function(err, row) {
-      console.log(row.id + ": " + row.info);
-  });
-});
-
-db.close();
-
-
-
-// Returns a new Database object and automatically opens the database. 
-// There is no separate method to open the database.
-
-// filename: Valid values are filenames, ":memory:" for an anonymous in-memory database and an empty string for an anonymous disk-based database. 
-// Anonymous databases are not persisted and when closing the database handle, their contents are lost.
-
-// mode (optional): One or more of sqlite3.OPEN_READONLY, sqlite3.OPEN_READWRITE and sqlite3.OPEN_CREATE. The default value is OPEN_READWRITE | OPEN_CREATE.
