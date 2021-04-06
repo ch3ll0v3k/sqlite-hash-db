@@ -1,9 +1,12 @@
 const DB = require('./DB');
 const express = require('./express');
+const LBRL = require('line-by-line');
+const readline = require('readline');
 
 module.exports = Application = class Application{
   constructor( params ){
     this.root = params.root || __dirname;
+    this.projRoot = `${this.root}/..`;
     this.params = params || {};
 
     this.DB = null;
@@ -29,8 +32,16 @@ module.exports = Application = class Application{
     await this._startServer();
 
     await console.sleep(1000);
+    this.DB._allowWrite = true;
+    this.DB._allowRead = true;
     this.emit('ready');
 
+  }
+
+  exit(){
+    this.emit('exit');
+    this.DB._closeAllDbs();
+    process.exit();
   }
 
   on(event, callback){
@@ -51,6 +62,22 @@ module.exports = Application = class Application{
 
       }
     }
+  }
+
+  async comfirmAction( question='' ){
+    return new Promise(async(resolve)=>{
+      const iface = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+      });
+
+      iface.question(`${ question }: [Y/n]`, (answer) => {
+        answer = answer.toString().trim().toLowerCase();
+        answer = !answer.length ? 'y' : answer;
+        iface.close();
+        resolve({ success: true, message: 'OK', agree: answer === 'y' })  
+      });
+    });
   }
 
   _attachRoutes(){

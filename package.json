@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node ."
+    "start": "node index.js",
+    "import:csv": "node import.csv.js"
   },
   "dependencies": {
     "abbrev": "^1.1.1",
@@ -69,6 +70,7 @@
     "json-schema-traverse": "^0.4.1",
     "json-stringify-safe": "^5.0.1",
     "jsprim": "^1.4.1",
+    "line-by-line": "^0.1.6",
     "mii-logger.js": "^1.1.92",
     "mime-db": "^1.47.0",
     "mime-types": "^2.1.30",
