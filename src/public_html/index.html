@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+  <meta charset="utf-8"/>
+  <title>API:Search</title>
+  <script type="text/javascript" src="/js/loader.js"></script>
+  <script type="text/javascript" src="/js/api.js"></script>
+  <link rel="stylesheet" type="text/css" href="/css/main.css"/>
+
+  <script type="text/javascript">
+
+    window.addEventListener('load', async()=>{
+
+      const mainTbody = document.querySelector('#main-tbody');
+      const mainInput = document.querySelector('#main-input');
+      const mainButton = document.querySelector('#main-button');
+
+      mainInput.addEventListener('keyup',(event)=>{
+        if( (+event.keyCode) === 13 )
+          search();
+      });
+
+      mainButton.addEventListener('click',(event)=>{
+        search();
+      });
+
+      const search = async()=>{
+        const searchBy = mainInput.value.trim();
+
+        showLoader();
+
+        const searchRes = await API.post('/search-by-any/', { searchBy })
+        if( !searchRes.success ){
+          hideLoader();
+          return mainTbody.innerHTML = `
+            <td colspan="9" style="text-align: center; padding-top: 10px; font-size: 20px;">
+              ${searchRes.message}
+            </td>
+          `;
+        }
+
+        if( !searchRes.data.length ){
+          hideLoader();
+          return mainTbody.innerHTML = `
+            <td colspan="9" style="text-align: center; padding-top: 10px; font-size: 20px;">
+              Ничего не найдено.
+            </td>
+          `;
+        }
+
+
+        let html = '';
+
+        for( const row of searchRes.data ){
+
+          // {
+          //   "id": 1,
+          //   "name_parts": "Alternator",
+          //   "art_brands": "DRI",
+          //   "art_code_parts": "2291501202",
+          //   "ttc_art_id": "81",
+          //   "brands": "PEUGEOT",
+          //   "code_parts": "1608064580",
+          //   "code_parts_advanced": "1608064580",
+          //   "dbName": "0x83"
+          // },
+
+          html += `
+            <tr>
+              <td>${ row.id }</td>
+              <td>${ row.name_parts }</td>
+              <td>${ row.art_brands }</td>
+              <td>${ row.art_code_parts }</td>
+              <td>${ row.ttc_art_id }</td>
+              <td>${ row.brands }</td>
+              <td>${ row.code_parts }</td>
+              <td>${ row.code_parts_advanced }</td>
+              <td>${ row.dbName }</td>
+            </tr>
+          `;
+        }
+
+        mainTbody.innerHTML = html;
+
+        hideLoader();
+
+      }
+
+      hideLoader();
+
+    });
+
+  </script>
+
+</head>
+<body>
+  <div id="loader">
+    <div id="loader-title"></div>
+  </div>
+
+  <div id="wrapper"> 
+
+    <div id="header">
+      <input
+        type="text"
+        value="2291501202"
+        id="main-input"
+        placeholder="Найти по любому номеру..."
+      />
+
+      <button id="main-button" class="btn">Search</button>
+    </div>
+      
+    <div id="body">
+
+      <table id="main-table">
+        <thead id="main-thead">
+          <tr>
+            <th>id</th>
+            <th>name_parts</th>
+            <th>art_brands</th>
+            <th>art_code_parts</th>
+            <th>ttc_art_id</th>
+            <th>brands</th>
+            <th>code_parts</th>
+            <th>code_parts_advanced</th>
+            <th>db-name</th>
+          </tr>
+        </thead>
+        <tbody id="main-tbody">
+          <tr>
+            <td colspan="9" style="text-align: center; padding-top: 10px; font-size: 20px;">
+              ...
+            </td>
+          </tr>
+        </tbody>
+        
+      </table>
+
+    </div>
+
+  </div>
+
+</body>
+</html>
