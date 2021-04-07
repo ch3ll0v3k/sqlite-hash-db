@@ -14,11 +14,12 @@ module.exports = (App)=>{
 
       const strict = App.getBooleanFromValue(data.strict);
       const searchBy = (data.searchBy || '').trim();
+      const limit = App.isPosNumber(+data.limit) ? (+data.limit) : 100;
 
       if( searchBy.length < MIN_CHAR_LIMIT )
         return res.json({success: false, message: `search-by: must be >= ${MIN_CHAR_LIMIT} characters`, data: []});
 
-      const searchByRes = await App.DB.findAllByAnyValue( searchBy, strict );
+      const searchByRes = await App.DB.findAllByAnyValue( searchBy, strict, limit );
       // console.json(searchByRes.data);
 
       res.json( searchByRes );

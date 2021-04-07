@@ -37,47 +37,70 @@ module.exports = DB = class DB{
     const data = console.readFileSync( filePath )
       .split('\n')
       .splice(1) // pop csv header
-      .map((line)=> line.trim() )
+      .map((line)=>this._cleanInputValue(line) )
       .filter((line)=>line )
-      .map((line)=>line.split(';').map((coll)=>coll.trim()) );
+      // .map((line)=>line.split(';').map((coll)=>coll.trim()) );
 
     return data;
 
   }
 
-  async findAllByAnyValue( value, strict=false ){
+  async findAllByAnyValue( value, strict=false, limit=50 ){
 
-    console.json({
-      findAllByAnyValue: { value, strict }
-    });
+    const self = this;
 
     return new Promise(async(resolve)=>{
 
-      value = this._cleanInputValue( value );
-      const hash = this.getSubHash( value );
+      strict=false;
+
+      value = self._cleanInputValue( value );
+      const hash = self.getSubHash( value );
 
       // find potential DB
-      const dbs = Object.keys(this.dbs)
+      const dbs = Object.keys(self.dbs)
         .filter((dbName)=>{
           return strict
             ? dbName.charAt(0) === hash || dbName.charAt(1) === hash
             : true; // <= search in all dbs
         });
 
-      const findByAny = `select * from data where ${ KEYS.map((key)=>`${key} like '%${value}%'`).join(' or ') }`;
+      const findByAny = `
+        select * from data 
+          where item like '%${value}%'
+          order by id desc 
+          limit ${ limit }
+        `;
+
       const params = []; // KEYS.map((key)=>value);
       let results = [];
 
       for( const dbName of dbs ){
-        const db = this.dbs[ dbName ];
-        // const res = await this._get(db, findByAny);
-        const res = await this._all(db, findByAny);
+        const db = self.dbs[ dbName ];
+        // const res = await self._get(db, findByAny);
+        const res = await self._all(db, findByAny);
         if( res.success && res.data.length ){
 
+          // console.json({ [ dbName ]: res.data });
+
+          // {
+          //   "8f": [
+          //     {
+          //       "id": 2664,
+          //       "item": "repair set pistonsleeve;kolbenschmidt;93315960;368854;deutz-fahr;02137206;0213 7206"
+          //     },
+          //     {
+          //       "id": 2663,
+          //       "item": "repair set pistonsleeve;kolbenschmidt;93315960;368854;deutz-fahr;02139501;0213 9501"
+          //     },
+          //   ]
+          // }
+
           res.data = res.data.map((record)=>{
-            record.dbName = `0x${dbName}`;
-            return record;
-          });;
+            return {
+              dbName: `0x${dbName}`,
+              ...self._dbRecordToNamedObject( record ),
+            }
+          });
 
           results = [ ...results, ...res.data ];
         }
@@ -113,13 +136,23 @@ module.exports = DB = class DB{
         if( !this.App.isArray(data) )
           return resolve({success: false, message: 'CSV data is not array', data: {}});
 
+        // this.dbs['ff'].run(`insert into data (id, item) values(NULL, 'abc')`, [], (err,res)=>{
+        //   console.json({
+        //     err, res
+        //   })
+        // });
+
+        // console.json(data);
+        // return;
+
         const totalRows = data.length;
         console.ok(` #DB:importCsv: total lines read: ${totalRows} rows`);
 
-        const qRes = await this.App.comfirmAction(`Import all [${totalRows}] rows from CSV ?`);
-        if( !qRes.agree ){
-          return this.App.exit();
-        }
+        // request to process
+        // const qRes = await this.App.comfirmAction(`Import all [${totalRows}] rows from CSV ?`);
+        // if( !qRes.agree ){
+        //   return this.App.exit();
+        // }
 
         const state = {
           success: 0,
@@ -127,11 +160,28 @@ module.exports = DB = class DB{
         };
 
         const transactions = {};
-        const { insert } = this.preFabs;
+        // const { insert } = this.preFabs;
+        // let s_time_t = console.TS('prepair-transaction');
+        let time_t = Date.now() +1000;
+        let rps = 0;
 
         for( const rowIndex in data ){
-          if( rowIndex%1000 === 0 )
-            console.log(` prepair transaction: ${rowIndex} of ${totalRows} `);
+
+          rps++;
+          const useTimer = (Date.now() -time_t) >= 0;
+
+          if( useTimer ){
+            console.log(` prepair transaction: ${rowIndex} of ${totalRows}: rp/s: ${rps} `);
+            time_t = Date.now() +1000;
+            rps = 0;
+          }
+
+          // const useTimer = rowIndex%1000 === 0;
+          // if( useTimer ){
+          //   const s_end_t = (console.TE('prepair-transaction') /1000).toFixed(3);
+          //   console.log(` prepair transaction: ${rowIndex} of ${totalRows}: mSec: ${s_end_t} `);
+          //   s_time_t = console.TS('prepair-transaction');
+          // }
 
           if( !self.allowWrite() ){
             console.warn(` #DB:importCsv: allowWrite == false, break`);
@@ -142,7 +192,13 @@ module.exports = DB = class DB{
           const dbName = this.getDbHashFromRow(row);
           const db = this.dbs[ dbName ];
 
-          const isExistingRowRes = await this.isExistingRow(db, row);
+          const isExistingRowRes = await this.isExistingRow(db, row, useTimer);
+          // console.json({
+          //   isExistingRowRes: isExistingRowRes.success,
+          //   dbName,
+          //   row
+          // });
+
           if( isExistingRowRes.success ){
             state.success++;
             continue;
@@ -180,10 +236,10 @@ module.exports = DB = class DB{
         console.TS('transaction');
 
         for( const dbName of Object.keys(transactions).sort() ){
-          console.log(`   db: ${dbName} => items: ${transactions[ dbName ].length}`);
 
+          let s_time_t = console.TS('import-transaction');
           const db = this.dbs[ dbName ];
-
+          // console.debug({dbName});
           const insertBulkRowsRes = await this.insertBulkRows( db, transactions[ dbName ] );
 
           if( !insertBulkRowsRes.success ){
@@ -191,6 +247,9 @@ module.exports = DB = class DB{
             console.json({ insertBulkRowsRes });
             continue;
           }
+
+          const e_time_t = (console.TE('import-transaction') /1000).toFixed(3);
+          console.log(`   db: ${dbName} => items: ${transactions[ dbName ].length} => e_time_t: ${e_time_t}`);
 
           state.success++;
 
@@ -241,25 +300,50 @@ module.exports = DB = class DB{
   }
 
   _cleanRow(row){
-    return row.map((coll)=>this._cleanInputValue(coll));
+    // return row.map((coll)=>this._cleanInputValue(coll));
+    return this._cleanInputValue(row);
   }
 
-  async isExistingRow( db, row ){
+  async isExistingRow( db, row, time=false ){
 
     return new Promise(async(resolve)=>{
+
+      // if( time ) console.TS('isExistingRow');
 
       row = this._cleanRow(row);
 
       const { exactMatch } = this.preFabs;
       // const db = this.dbs[ dbName ];
 
+      // let sql = exactMatch;
+      // row.map((item)=>{
+      //   sql = sql.replace('?',`'${item}'`);
+      // });
+
+      // if( time ){
+      //   console.log({sql});
+      // }
+
       db.get( exactMatch, row, (err,res)=>{
-        // console.json({exactMatch: {err,res}});
+      // db.get( sql, [], (err,res)=>{
+        // if( time )
+        //   console.json({exactMatch: {err,res}});
+
+        // if( time ){
+        //   const s_end_t = (console.TE('isExistingRow') /1000).toFixed(3);
+        //   console.log(` isExistingRow mSec: ${s_end_t} `);
+        // }
+
         if( err )
           return resolve({success: false, message: (err.message || err), data: {}});
 
-        if( res )
+        if( res ){
+          // if( !(+res.id) ){
+          //   console.log(`ID: ${res.id}`);
+          //   process.exit();
+          // }
           return resolve({success: true, message: 'Data already exist', data: {}});
+        }
 
         resolve({success: false, message: 'Data not found', data: {}});
       });
@@ -276,17 +360,21 @@ module.exports = DB = class DB{
 
       db.serialize(async function() {
 
-        db.run('BEGIN');
+        db.run('BEGIN',async(err, res)=>{
+          for (const row of rows) {
+            const runRes = await self._run(db, insert, row);
+            if( !runRes.success ){
+              // console.warn(`   insertBulkRows: ${runRes.message}`);
+            }
+          }
 
-        for (const row of rows) {
-          const runRes = await self._run(db, insert, row);
-          if( !runRes.success )
-            console.log(`   insertBulkRows: ${runRes.message}`);
-        }
-
-        // const res = stmt.finalize();
-        db.run('COMMIT');
-        resolve({success: true, message: 'OK', data: []});
+          // const res = stmt.finalize();
+          db.run('COMMIT',async(err,res)=>{
+            // console.log({COMMIT: {err, res}});
+            resolve({success: true, message: 'OK', data: []});
+          });
+          
+        });
       });
 
     });
@@ -406,6 +494,7 @@ module.exports = DB = class DB{
     for( const dbName of Object.keys(this.dbs) ){
       try{
         const db = this.dbs[ dbName ];
+        db.run('COMMIT');
         db.close();
       }catch(e){
         // already closed ...
@@ -476,7 +565,9 @@ module.exports = DB = class DB{
   }
 
   getSubHash(data,num=1){
-    return console.hash.sha256( this._cleanInputValue(data) ).substr(0,num);
+    return console.hash.sha1( this._cleanInputValue(data) ).substr(0,num);
+    // return console.hash.sha256( this._cleanInputValue(data) ).substr(0,num);
+    // return console.hash.md5( this._cleanInputValue(data) ).substr(0,num);
   }
 
   getRowHash(row, join='-'){
@@ -484,6 +575,7 @@ module.exports = DB = class DB{
   }
 
   getDbHashFromRow(row, join=''){
+    row = row.split(';');
     const a = this.getSubHash( this._cleanInputValue(row[ ROWS.ART_CODE_PARTS ]), 1);
     const b = this.getSubHash( this._cleanInputValue(row[ ROWS.CODE_PARTS ]), 1);
     return `${a}${join}${b}`;
@@ -495,8 +587,31 @@ module.exports = DB = class DB{
     return preFab;    
   }
 
+  _dbRecordToNamedObject(record){
+
+    const mObj = {};
+
+    record.item
+      .split(';')
+      .map((value, i)=>{
+        mObj[ KEYS[ i ] ] = (i === 0 || i === 1 || i === 4)
+          ? value.toUpperCase()
+          : value;
+      });
+
+    return {
+      id: record.id,
+      ...mObj,
+    };
+
+  }
+
   _cleanInputValue(value){
-    return value.toString().replace(/[^а-яА-Яa-zA-Z0-9\-\_\s]/g,'').trim();
+    return value
+      .toString()
+      .replace(/[^а-яА-Яa-zA-Z0-9\-\_\s;:]/g,'')
+      .trim()
+      .toLowerCase();
   }
 
 }

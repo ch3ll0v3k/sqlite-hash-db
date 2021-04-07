@@ -9,12 +9,22 @@
 
   <script type="text/javascript">
 
+    const getExactMatch = (searchBy, val)=>{
+
+      const a = searchBy.toString().toLowerCase().trim();
+      const b = val.toString().toLowerCase().trim();
+
+      if( a === b ) return 'exact';
+      if( b.replace(a,'') !== b ) return 'partial';
+      return 'normal';
+    }
+
     window.addEventListener('load', async()=>{
 
       const mainTbody = document.querySelector('#main-tbody');
       const mainInput = document.querySelector('#main-input');
       const mainButton = document.querySelector('#main-button');
-      const mainCheckbox = document.querySelector('#main-checkbox');
+      // const mainCheckbox = document.querySelector('#main-checkbox');
 
       mainInput.addEventListener('keyup',(event)=>{
         if( (+event.keyCode) === 13 )
@@ -25,15 +35,15 @@
         search();
       });
 
-
-      mainCheckbox.addEventListener('change',(event)=>{
-        strict = !strict;
-      });
+      // mainCheckbox.addEventListener('change',(event)=>{
+      //   strict = !strict;
+      // });
 
       let strict = false;
 
       const search = async()=>{
-        const searchBy = mainInput.value.trim();
+        const searchBy = mainInput.value.trim().toLowerCase();
+
 
         showLoader();
 
@@ -60,13 +70,14 @@
           `;
         }
 
-
         let html = '';
+        const keys = [
+          'id','name_parts','art_brands','art_code_parts','ttc_art_id',
+          'brands','code_parts','code_parts_advanced','dbName'
+        ];
 
         for( const rowIndex in searchRes.data ){
-
           const row = searchRes.data[ rowIndex ];
-
           // {
           //   "id": 1,
           //   "name_parts": "Alternator",
@@ -79,19 +90,20 @@
           //   "dbName": "0x83"
           // },
 
-          html += `
-            <tr class="main-table-tr ${ rowIndex%2===0?'even-table-tr':'odd-table-tr' }">
-              <td>${ row.id }</td>
-              <td>${ row.name_parts }</td>
-              <td>${ row.art_brands }</td>
-              <td>${ row.art_code_parts }</td>
-              <td>${ row.ttc_art_id }</td>
-              <td>${ row.brands }</td>
-              <td>${ row.code_parts }</td>
-              <td>${ row.code_parts_advanced }</td>
-              <td>${ row.dbName }</td>
-            </tr>
-          `;
+          html += `<tr class="main-table-tr ${ rowIndex%2===0?'even-table-tr':'odd-table-tr' }">`
+
+          for( const key of keys ){
+
+            const tdClass = getExactMatch( searchBy, row[ key ] );
+            const value = tdClass === 'partial'
+              ? row[ key ].replace(searchBy, `<span class="${ tdClass }">${searchBy}</span>`)
+              : row[ key ]
+
+            html += `<td class="${ tdClass }" title="${key}">${ value }</td>`
+
+          }
+
+          html += `</tr>`;
         }
 
         mainTbody.innerHTML = html;
@@ -129,6 +141,7 @@
 
       <div id="header-footer">
 
+        <!--
         <div class="header-coll">
           <input
             type="checkbox"
@@ -136,6 +149,7 @@
           />
           Искать точное совпадение ?
         </div>
+        -->
 
       </div>
 
