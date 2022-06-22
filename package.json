@@ -113,7 +113,7 @@
     "serve-static": "^1.14.1",
     "set-blocking": "^2.0.0",
     "signal-exit": "^3.0.3",
-    "sqlite3": "^5.0.2",
+    "sqlite3": "^5.0.3",
     "sshpk": "^1.16.1",
     "string_decoder": "^1.1.1",
     "string-width": "^1.0.2",
