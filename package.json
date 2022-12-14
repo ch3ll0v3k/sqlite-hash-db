@@ -37,7 +37,7 @@
     "delegates": "^1.0.0",
     "detect-libc": "^1.0.3",
     "ecc-jsbn": "^0.1.2",
-    "express": "^4.17.1",
+    "express": "^4.17.3",
     "extend": "^3.0.2",
     "extsprintf": "^1.3.0",
     "fast-deep-equal": "^3.1.3",
